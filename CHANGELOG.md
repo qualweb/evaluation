@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0-alpha] - 23/02/2022
+
+### Updated
+
+- code to work with new alpha evaluations modules
+
 ## [0.3.12] - 21/02/2022
 
 ### Fixed

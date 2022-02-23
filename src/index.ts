@@ -8,7 +8,7 @@ import { BPOptions, BestPracticesReport } from '@qualweb/best-practices';
 import { executeWappalyzer } from '@qualweb/wappalyzer';
 import { CounterReport } from '@qualweb/counter';
 import { HTMLValidationReport } from '@qualweb/html-validator';
-import { QWElement } from '@qualweb/qw-element';
+import { QWElementNode } from '@qualweb/qw-page';
 import { Translate } from '@qualweb/locale';
 
 class Evaluation {
@@ -121,18 +121,21 @@ class Evaluation {
   private async init(): Promise<void> {
     await this.page.addScriptTag({
       path: require.resolve('@qualweb/qw-page'),
-      type: 'text/javascript'
+      type: 'text/javascript',
+      id: 'qw-script-page'
     });
     await this.page.addScriptTag({
       path: require.resolve('@qualweb/util'),
-      type: 'text/javascript'
+      type: 'text/javascript',
+      id: 'qw-script-util'
     });
   }
 
   private async executeACT(sourceHtml: string, locale: Translate, options?: ACTROptions): Promise<ACTRulesReport> {
     await this.page.addScriptTag({
       path: require.resolve('@qualweb/act-rules'),
-      type: 'text/javascript'
+      type: 'text/javascript',
+      id: 'qw-script-act'
     });
 
     await this.page.keyboard.press('Tab'); // for R72 that needs to check the first focusable element
@@ -141,17 +144,15 @@ class Evaluation {
         // @ts-ignore
         window.act = new ACTRules(JSON.parse(locale), options);
 
-        window.act.validateFirstFocusableElementIsLinkToNonRepeatedContent();
-
         const parser = new DOMParser();
         const sourceDoc = parser.parseFromString('', 'text/html');
 
         sourceDoc.documentElement.innerHTML = sourceHtml;
 
         const elements = sourceDoc.querySelectorAll('meta');
-        const metaElements = new Array<QWElement>();
+        const metaElements = new Array<QWElementNode>();
         elements.forEach((element: HTMLMetaElement) => {
-          metaElements.push(window.qwPage.createQWElement(element));
+          metaElements.push(window.qwPage.createQWElementNode(element));
         });
 
         window.act.validateMetaElements(metaElements);
@@ -199,7 +200,8 @@ class Evaluation {
   ): Promise<WCAGTechniquesReport> {
     await this.page.addScriptTag({
       path: require.resolve('@qualweb/wcag-techniques'),
-      type: 'text/javascript'
+      type: 'text/javascript',
+      id: 'qw-script-wcag'
     });
 
     const newTabWasOpen = await this.detectIfUnwantedTabWasOpened();
@@ -220,7 +222,8 @@ class Evaluation {
   private async executeBP(locale: Translate, options?: BPOptions): Promise<BestPracticesReport> {
     await this.page.addScriptTag({
       path: require.resolve('@qualweb/best-practices'),
-      type: 'text/javascript'
+      type: 'text/javascript',
+      id: 'qw-script-bp'
     });
 
     return await this.page.evaluate(
@@ -237,7 +240,8 @@ class Evaluation {
   private async executeCounter(): Promise<CounterReport> {
     await this.page.addScriptTag({
       path: require.resolve('@qualweb/counter'),
-      type: 'text/javascript'
+      type: 'text/javascript',
+      id: 'qw-script-counter'
     });
 
     return this.page.evaluate(() => {

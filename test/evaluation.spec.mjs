@@ -17,10 +17,6 @@ describe('QualWeb evaluation', function () {
 
     const options = {
       waitUntil: ['load', 'networkidle2'],
-      log: { console: true },
-      viewport: { mobile: true, landscape: false },
-      execute: { act: true, wcag: false },
-      'act-rules': { levels: ['A', 'AA'] },
       translate: { translate: locales.default.en, fallback: locales.default.en }
     };
 
@@ -28,8 +24,8 @@ describe('QualWeb evaluation', function () {
 
     const evaluation = new Evaluation(url, page, {
       act: true,
-      wcag: false,
-      bp: false,
+      wcag: true,
+      bp: true,
       counter: false,
       wappalyzer: false
     });
