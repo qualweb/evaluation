@@ -1,6 +1,6 @@
 {
   "name": "@qualweb/evaluation",
-  "version": "0.4.0-alpha",
+  "version": "0.4.0-alpha2",
   "description": "Evaluates chosen modules",
   "main": "dist/index.js",
   "files": [
@@ -56,7 +56,7 @@
   "dependencies": {
     "@qualweb/act-rules": "0.7.0-alpha2",
     "@qualweb/best-practices": "0.7.0-alpha",
-    "@qualweb/counter": "0.2.0",
+    "@qualweb/counter": "0.3.0-alpha",
     "@qualweb/qw-page": "0.3.0-alpha6",
     "@qualweb/util": "0.6.0-alpha5",
     "@qualweb/wappalyzer": "0.3.3",
