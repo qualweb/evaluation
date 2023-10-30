@@ -1,23 +1,26 @@
 import Metadata from './metadata.object';
-import { EvaluationReport, Evaluator, Modules, Module } from '@qualweb/core';
+import { EvaluationReport, Evaluator, Modules, Module, State, Selector } from '@qualweb/core';
 import { Report } from '@qualweb/earl-reporter';
 import { WappalyzerReport } from '@qualweb/wappalyzer';
 import { ACTRulesReport } from '@qualweb/act-rules';
 import { WCAGTechniquesReport } from '@qualweb/wcag-techniques';
 import { BestPracticesReport } from '@qualweb/best-practices';
 import { CounterReport } from '@qualweb/counter';
+import { DomData } from '@qualweb/dom';
 
 class EvaluationRecord {
   private readonly type: 'evaluation';
-  private readonly evaluator: Evaluator;
+  private readonly evaluator?: Evaluator;
   private readonly metadata: Metadata;
   private readonly modules: Modules;
+  private readonly state: State;
 
-  constructor(evaluator: Evaluator) {
+  constructor(evaluator?: Evaluator) {
     this.type = 'evaluation';
     this.evaluator = evaluator;
     this.metadata = new Metadata();
     this.modules = {};
+    this.state = {};
   }
 
   public addModuleEvaluation(module: Module, evaluation: Report | WappalyzerReport | CounterReport): void {
@@ -51,12 +54,34 @@ class EvaluationRecord {
     }
   }
 
+  public addState(dom: DomData, selector: [Selector]): void {
+    if (this.state) {
+      this.state.dom = dom;
+      this.state.selector = selector;
+    }
+  }
+
   public getFinalReport(): EvaluationReport {
+    if (Object.keys(this.state).length === 0) {
+      return {
+        type: this.type,
+        system: this.evaluator,
+        metadata: this.metadata.getResults(),
+        modules: this.modules
+      };
+    } else {
+      return {
+        state: this.state,
+        metadata: this.metadata.getResults(),
+        modules: this.modules
+      };
+    }
+  }
+
+  public getFinalReportQS(): EvaluationReport {
     return {
       type: this.type,
       system: this.evaluator,
-      metadata: this.metadata.getResults(),
-      modules: this.modules
     };
   }
 }

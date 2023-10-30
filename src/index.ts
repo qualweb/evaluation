@@ -1,5 +1,5 @@
 import { Page, Serializable } from 'puppeteer';
-import { QualwebOptions, Url, Evaluator, Execute } from '@qualweb/core';
+import { QualwebOptions, Url, Evaluator, Execute, Selector } from '@qualweb/core';
 import { randomBytes } from 'crypto';
 import { WCAGOptions, WCAGTechniquesReport } from '@qualweb/wcag-techniques';
 import EvaluationRecord from './evaluationRecord.object';
@@ -9,10 +9,11 @@ import { CounterReport } from '@qualweb/counter';
 import { HTMLValidationReport } from '@qualweb/html-validator';
 import { QWElement } from '@qualweb/qw-element';
 import { Translate } from '@qualweb/locale';
+import { DomData } from '@qualweb/dom';
 
 class Evaluation {
   private readonly url: string;
-  private readonly page: Page;
+  private page: Page;
   private readonly execute: Execute;
 
   constructor(url: string, page: Page, execute: Execute) {
@@ -24,10 +25,16 @@ class Evaluation {
   public async evaluatePage(
     sourceHtml: string,
     options: QualwebOptions,
-    validation?: HTMLValidationReport
+    validation?: HTMLValidationReport,
+    stateInfo?: [Selector],
+    qsHeader?: boolean
   ): Promise<EvaluationRecord> {
-    const evaluator = await this.getEvaluator();
-    const evaluation = new EvaluationRecord(evaluator);
+
+    if (qsHeader != null && qsHeader == true) {
+      return new EvaluationRecord(await this.getEvaluator(true));
+    }
+
+    let evaluation = stateInfo != null ? new EvaluationRecord() : new EvaluationRecord(await this.getEvaluator(false));
 
     await this.init();
 
@@ -51,11 +58,14 @@ class Evaluation {
     if (this.execute.counter) {
       evaluation.addModuleEvaluation('counter', await this.executeCounter());
     }
+    if (stateInfo != null) {
+      evaluation.addState(await this.executeDomData(), stateInfo);
+    }
 
     return evaluation;
   }
 
-  private async getEvaluator(): Promise<Evaluator> {
+  private async getEvaluator(qualState: boolean): Promise<Evaluator> {
     const [plainHtml, pageTitle, elements, browserUserAgent] = await Promise.all([
       this.page.evaluate(() => {
         return document.documentElement.outerHTML;
@@ -66,6 +76,29 @@ class Evaluation {
     ]);
 
     const viewport = this.page.viewport();
+
+    if (qualState) {
+      return {
+        name: 'QualWeb',
+        description: 'QualWeb is an automatic accessibility evaluator for webpages.',
+        version: '3.0.0',
+        homepage: 'http://www.qualweb.di.fc.ul.pt/',
+        date: new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''),
+        hash: randomBytes(64).toString('hex'),
+        url: this.url ? this.parseUrl() : undefined,
+        page: {
+          viewport: {
+            mobile: viewport?.isMobile,
+            landscape: viewport?.isLandscape,
+            userAgent: browserUserAgent,
+            resolution: {
+              width: viewport?.width,
+              height: viewport?.height
+            }
+          }
+        }
+      };
+    }
 
     return {
       name: 'QualWeb',
@@ -92,6 +125,10 @@ class Evaluation {
         }
       }
     };
+  }  
+
+  public async setPage(page: Page): Promise<void> {
+    this.page = page;
   }
 
   private parseUrl(): Url {
@@ -242,6 +279,23 @@ class Evaluation {
     return this.page.evaluate(() => {
       return window.executeCounter();
     });
+  }
+
+  public async executeDomData(): Promise<DomData> {
+    const [plainHtml, pageTitle, elements] = await Promise.all([
+      this.page.evaluate(() => {
+        return document.documentElement.outerHTML;
+      }),
+      this.page.title(),
+      this.page.$$('*'),
+      this.page.browser().userAgent()
+    ]);
+
+    return {
+      html: plainHtml,
+      title: pageTitle,
+      elementCount: elements.length
+    };
   }
 
   private async detectIfUnwantedTabWasOpened(): Promise<boolean> {
